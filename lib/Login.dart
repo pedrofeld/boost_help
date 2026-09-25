@@ -17,7 +17,7 @@ class _HomeState extends State<Login> {
           child: SizedBox(
             width: 350,
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsetsGeometry.fromLTRB(24,24,24,10),
               child: Column(
                 mainAxisSize: .min,
                 children: [
@@ -39,6 +39,9 @@ class _HomeState extends State<Login> {
                           color: Colors.blueAccent,
                         ),
                       ),
+                      floatingLabelStyle: TextStyle(
+                        color: Colors.blueAccent,
+                      ),
                     ),
                   ),
                   SizedBox(height: 15),
@@ -51,6 +54,9 @@ class _HomeState extends State<Login> {
                         borderSide: BorderSide(
                           color: Colors.blueAccent,
                         ),
+                      ),
+                      floatingLabelStyle: TextStyle(
+                        color: Colors.blueAccent,
                       ),
                     ),
                   ),
@@ -68,6 +74,20 @@ class _HomeState extends State<Login> {
                       ),
                     ),
                   ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  TextButton(
+                      onPressed: (){},
+                      child: Text(
+                        'Sem conta? Cadastre uma!',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 12,
+                        ),
+                        selectionColor: Colors.blueAccent,
+                      )
+                  )
                 ],
               ),
             ),

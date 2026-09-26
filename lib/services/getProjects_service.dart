@@ -31,7 +31,7 @@ class GetProjectsService {
       final response = await _client
           .get(
             Uri.parse('${apiUrl}/projects'),
-            headers: {'bearer-token': token},
+            headers: {'Authorization': 'Bearer $token'},
           )
           .timeout(const Duration(seconds: 15));
 

@@ -4,6 +4,7 @@ import 'package:boost_help/services/login_service.dart';
 import 'package:flutter/material.dart';
 
 import 'RegisterUser_page.dart';
+import 'Home.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -37,10 +38,19 @@ class _HomeState extends State<Login> {
 
     if (!mounted) return;
     setState(() => _isLoading = false);
+
+    if (result.success) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const Home()),
+      );
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(result.success ? 'Login realizado!' : result.message!),
-        backgroundColor: result.success ? Colors.green : Colors.red,
+        content: Text(result.message ?? 'Não foi possível fazer login.'),
+        backgroundColor: Colors.red,
       ),
     );
   }
@@ -122,21 +132,20 @@ class _HomeState extends State<Login> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Text('Entrar',
-                              style: TextStyle(
-                                color: Colors.blueAccent
+                            : const Text(
+                                'Entrar',
+                                style: TextStyle(color: Colors.blueAccent),
                               ),
-                            ),
                       ),
                     ),
                     SizedBox(height: 10),
                     TextButton(
                       onPressed: () {
                         Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const RegisterUserPage(),
-                            ),
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const RegisterUserPage(),
+                          ),
                         );
                       },
                       child: Text(

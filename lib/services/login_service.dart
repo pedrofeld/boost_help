@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'service_response.dart';
+import '../config/service_response.dart';
 
 class LoginService {
   LoginService({http.Client? client}) : _client = client ?? http.Client();

@@ -1,8 +1,11 @@
 // ignore_for_file: file_names
 
+import 'package:boost_help/services/createUser_service.dart';
 import 'package:flutter/material.dart';
 
 enum _UserRole { visionary, investor }
+
+enum _InvestorType { individual, company }
 
 class RegisterUserPage extends StatefulWidget {
   const RegisterUserPage({super.key});
@@ -13,7 +16,10 @@ class RegisterUserPage extends StatefulWidget {
 
 class _RegisterUserPageState extends State<RegisterUserPage> {
   final _formKey = GlobalKey<FormState>();
+  final _createUserService = CreateUserService();
   _UserRole _role = _UserRole.visionary;
+  _InvestorType _investorType = _InvestorType.individual;
+  bool _isLoading = false;
 
   final _firstName = TextEditingController();
   final _lastName = TextEditingController();
@@ -26,7 +32,6 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
   final _linkedIn = TextEditingController();
   final _profession = TextEditingController();
   final _studyArea = TextEditingController();
-  final _investorType = TextEditingController();
   final _companyName = TextEditingController();
   final _position = TextEditingController();
   final _companyWebsite = TextEditingController();
@@ -45,7 +50,6 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
       _linkedIn,
       _profession,
       _studyArea,
-      _investorType,
       _companyName,
       _position,
       _companyWebsite,
@@ -55,11 +59,50 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
     super.dispose();
   }
 
-  void _submit() {
+  String _apiRole() => _role == _UserRole.visionary ? 'VISIONARY' : 'INVESTOR';
+
+  String _apiInvestorType() =>
+      _investorType == _InvestorType.individual ? 'INDIVIDUAL' : 'COMPANY';
+
+  String? _optional(TextEditingController controller) {
+    final value = controller.text.trim();
+    return value.isEmpty ? null : value;
+  }
+
+  Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
+    setState(() => _isLoading = true);
+    final result = await _createUserService.createUser(
+      _firstName.text.trim(),
+      _lastName.text.trim(),
+      _email.text.trim(),
+      _password.text,
+      _apiRole(),
+      _city.text.trim(),
+      _state.text.trim(),
+      _role == _UserRole.visionary ? _optional(_profession) : null,
+      _role == _UserRole.visionary ? _optional(_studyArea) : null,
+      _optional(_biography),
+      _optional(_phoneNumber),
+      _optional(_linkedIn),
+      _role == _UserRole.investor ? _apiInvestorType() : null,
+      _role == _UserRole.investor ? _optional(_companyName) : null,
+      _role == _UserRole.investor ? _optional(_position) : null,
+      _role == _UserRole.investor ? _optional(_companyWebsite) : null,
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Formulário preenchido com sucesso.')),
+      SnackBar(
+        content: Text(
+          result.success
+              ? 'Cadastro realizado com sucesso.'
+              : (result.message ?? 'Não foi possível concluir o cadastro.'),
+        ),
+        backgroundColor: result.success ? Colors.green : Colors.red,
+      ),
     );
   }
 
@@ -95,6 +138,27 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
     );
   }
 
+  Widget _investorTypeField() {
+    return DropdownButtonFormField<_InvestorType>(
+      initialValue: _investorType,
+      decoration: _decoration('Tipo de investidor *'),
+      items: const [
+        DropdownMenuItem(
+          value: _InvestorType.individual,
+          child: Text('Individual'),
+        ),
+        DropdownMenuItem(
+          value: _InvestorType.company,
+          child: Text('Empresa'),
+        ),
+      ],
+      onChanged: (value) {
+        if (value == null) return;
+        setState(() => _investorType = value);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -118,7 +182,7 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
                     children: [
                       const Text(
                         'Tipo de usuário',
-                        textAlign: .center,
+                        textAlign: TextAlign.center,
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
@@ -152,6 +216,7 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
                           ),
                         ),
                         onSelectionChanged: (selection) {
+                          if (_isLoading) return;
                           setState(() => _role = selection.first);
                         },
                       ),
@@ -217,7 +282,7 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
                         const SizedBox(height: 16),
                         _field(_studyArea, 'Área de estudo'),
                       ] else ...[
-                        _field(_investorType, 'Tipo de investidor'),
+                        _investorTypeField(),
                         const SizedBox(height: 16),
                         _field(_companyName, 'Nome da empresa'),
                         const SizedBox(height: 16),
@@ -231,13 +296,19 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
                       ],
                       const SizedBox(height: 24),
                       ElevatedButton(
-                        onPressed: _submit,
-                        child: const Text(
-                          'Cadastrar',
-                          style: TextStyle(
-                            color: Colors.blueAccent
-                          ),
-                        ),
+                        onPressed: _isLoading ? null : _submit,
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Cadastrar',
+                                style: TextStyle(color: Colors.blueAccent),
+                              ),
                       ),
                     ],
                   ),

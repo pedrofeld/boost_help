@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../config/service_response.dart';
+import '../config/token_storage.dart';
 
 class LoginService {
   LoginService({http.Client? client}) : _client = client ?? http.Client();
@@ -28,10 +29,19 @@ class LoginService {
           .timeout(const Duration(seconds: 15));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return ServiceResponse(
-          success: true,
-          data: _dataFromResponse(response),
-        );
+        final data = _dataFromResponse(response);
+        final token = _tokenFromData(data);
+
+        if (token == null) {
+          return const ServiceResponse(
+            success: false,
+            message: 'The login response did not contain an access token.',
+          );
+        }
+
+        await TokenStorage.saveToken(token);
+
+        return ServiceResponse(success: true, data: data);
       }
 
       return ServiceResponse(
@@ -44,6 +54,34 @@ class LoginService {
         message: 'It was not possible to access the API. Try again.',
       );
     }
+  }
+
+  String? _tokenFromData(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      for (final key in [
+        'accessToken',
+        'access_token',
+        'token',
+        'bearerToken',
+      ]) {
+        final value = data[key];
+        if (value is String && value.isNotEmpty) return value;
+      }
+
+      for (final value in data.values) {
+        final token = _tokenFromData(value);
+        if (token != null) return token;
+      }
+    }
+
+    if (data is List) {
+      for (final value in data) {
+        final token = _tokenFromData(value);
+        if (token != null) return token;
+      }
+    }
+
+    return null;
   }
 
   dynamic _dataFromResponse(http.Response response) {

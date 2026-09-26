@@ -3,6 +3,8 @@
 import 'package:boost_help/services/login_service.dart';
 import 'package:flutter/material.dart';
 
+import 'RegisterUser_page.dart';
+
 class Login extends StatefulWidget {
   const Login({super.key});
 
@@ -129,7 +131,14 @@ class _HomeState extends State<Login> {
                     ),
                     SizedBox(height: 10),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const RegisterUserPage(),
+                            ),
+                        );
+                      },
                       child: Text(
                         'Sem conta? Cadastre uma!',
                         style: TextStyle(color: Colors.black, fontSize: 12),

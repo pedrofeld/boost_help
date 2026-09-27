@@ -40,6 +40,10 @@ class LoginService {
         }
 
         await TokenStorage.saveToken(token);
+        final userId = _userIdFromData(data);
+        if (userId != null) {
+          await TokenStorage.saveUserId(userId);
+        }
 
         return ServiceResponse(success: true, data: data);
       }
@@ -78,6 +82,29 @@ class LoginService {
       for (final value in data) {
         final token = _tokenFromData(value);
         if (token != null) return token;
+      }
+    }
+
+    return null;
+  }
+
+  String? _userIdFromData(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final user = data['user'];
+      if (user is Map<String, dynamic> && user['id'] is String) {
+        return user['id'] as String;
+      }
+
+      for (final value in data.values) {
+        final userId = _userIdFromData(value);
+        if (userId != null) return userId;
+      }
+    }
+
+    if (data is List) {
+      for (final value in data) {
+        final userId = _userIdFromData(value);
+        if (userId != null) return userId;
       }
     }
 

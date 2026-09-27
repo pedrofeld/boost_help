@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/getProjects_service.dart';
 import '../services/findUserById_service.dart';
+import '../services/createProject_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Home extends StatefulWidget {
@@ -13,6 +14,7 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   final _getProjectsService = GetProjectsService();
   final _findUserByIdService = FindUserByIdService();
+  final _createProjectService = CreateProjectService();
   List<Map<String, dynamic>> _projects = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -83,6 +85,13 @@ class _HomeState extends State<Home> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: const Color(0xFF161B2E),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showCreateProjectDialog,
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('Criar projeto'),
       ),
       backgroundColor: const Color(0xFFF4F6FB),
       body: _isLoading
@@ -159,6 +168,254 @@ class _HomeState extends State<Home> {
               },
             ),
     );
+  }
+
+  Future<void> _showCreateProjectDialog() async {
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController();
+    final resumeController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final obstaclesController = TextEditingController();
+    final cityController = TextEditingController();
+    final stateController = TextEditingController();
+    String sector = 'TECH';
+    final selectedSupportTypes = <String>[];
+    bool isSaving = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> saveProject() async {
+              if (!(formKey.currentState?.validate() ?? false)) return;
+
+              setDialogState(() => isSaving = true);
+              final result = await _createProjectService.createProject(
+                name: nameController.text,
+                resume: resumeController.text,
+                description: descriptionController.text,
+                obstacles: obstaclesController.text,
+                city: cityController.text,
+                state: stateController.text,
+                sector: sector,
+                typesOfSupportSought: selectedSupportTypes,
+              );
+
+              if (!mounted) return;
+              if (result.success) {
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Projeto criado com sucesso.'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                setState(() {
+                  _isLoading = true;
+                  _errorMessage = null;
+                });
+                await _loadProjects();
+              } else {
+                setDialogState(() => isSaving = false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      result.message ?? 'Não foi possível criar o projeto.',
+                    ),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+
+            return AlertDialog(
+              title: const Text('Criar projeto'),
+              content: SizedBox(
+                width: 520,
+                child: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _formField(nameController, 'Nome do projeto'),
+                        _formField(resumeController, 'Resumo'),
+                        _formField(
+                          descriptionController,
+                          'Descrição',
+                          maxLines: 3,
+                        ),
+                        _formField(
+                          obstaclesController,
+                          'Obstáculos',
+                          maxLines: 3,
+                        ),
+                        _formField(cityController, 'Cidade'),
+                        _formField(stateController, 'Estado'),
+                        DropdownButtonFormField<String>(
+                          value: sector,
+                          decoration: const InputDecoration(
+                            labelText: 'Setor',
+                            border: OutlineInputBorder(),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.blueAccent),
+                            ),
+                            floatingLabelStyle: TextStyle(
+                              color: Colors.blueAccent,
+                            ),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'TECH',
+                              child: Text('Tecnologia'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'HEALTH',
+                              child: Text('Saúde'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'EDUCATION',
+                              child: Text('Educação'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'ENVIRONMENT',
+                              child: Text('Meio ambiente'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'OTHER',
+                              child: Text('Outro'),
+                            ),
+                          ],
+                          onChanged: isSaving
+                              ? null
+                              : (value) {
+                                  if (value != null) {
+                                    setDialogState(() => sector = value);
+                                  }
+                                },
+                        ),
+                        const SizedBox(height: 12),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Tipos de apoio procurados',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        ..._supportTypes.map(
+                          (supportType) => CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                            title: Text(_supportTypeLabel(supportType)),
+                            value: selectedSupportTypes.contains(supportType),
+                            activeColor: Colors.blueAccent,
+                            onChanged: isSaving
+                                ? null
+                                : (selected) {
+                                    setDialogState(() {
+                                      if (selected == true) {
+                                        selectedSupportTypes.add(supportType);
+                                      } else {
+                                        selectedSupportTypes.remove(
+                                          supportType,
+                                        );
+                                      }
+                                    });
+                                  },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving
+                      ? null
+                      : () => Navigator.pop(dialogContext),
+                  child: const Text(
+                    'Cancelar',
+                    style: TextStyle(
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: isSaving ? null : saveProject,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: isSaving
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Criar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _formField(
+    TextEditingController controller,
+    String label, {
+    int maxLines = 1,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextFormField(
+        controller: controller,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+          focusedBorder: const OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.blueAccent),
+          ),
+          floatingLabelStyle: const TextStyle(color: Colors.blueAccent),
+        ),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return 'Preencha este campo.';
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
+  static const _supportTypes = [
+    'FINANCIAL',
+    'MENTORSHIP',
+    'PARTNERSHIP',
+    'EQUIPMENT',
+    'TECHNOLOGY',
+    'PROMOTION',
+    'SPACE',
+  ];
+
+  String _supportTypeLabel(String supportType) {
+    const labels = {
+      'FINANCIAL': 'Financeiro',
+      'MENTORSHIP': 'Mentoria',
+      'PARTNERSHIP': 'Parceria',
+      'EQUIPMENT': 'Equipamentos',
+      'TECHNOLOGY': 'Tecnologia',
+      'PROMOTION': 'Divulgação',
+      'SPACE': 'Espaço',
+    };
+    return labels[supportType] ?? supportType;
   }
 
   Widget _projectCard(Map<String, dynamic> project) {
@@ -313,9 +570,7 @@ class _HomeState extends State<Home> {
 
   Widget _imagePlaceholder() {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.blueAccent
-      ),
+      decoration: const BoxDecoration(color: Colors.blueAccent),
       child: const Center(
         child: Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 42),
       ),

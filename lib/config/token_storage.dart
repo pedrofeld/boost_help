@@ -2,6 +2,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class TokenStorage {
   static const _tokenKey = 'access_token';
+  static const _userIdKey = 'user_id';
   static const _storage = FlutterSecureStorage();
 
   static Future<void> saveToken(String token) async {
@@ -10,5 +11,13 @@ class TokenStorage {
 
   static Future<String?> getToken() async {
     return _storage.read(key: _tokenKey);
+  }
+
+  static Future<void> saveUserId(String userId) async {
+    await _storage.write(key: _userIdKey, value: userId);
+  }
+
+  static Future<String?> getUserId() async {
+    return _storage.read(key: _userIdKey);
   }
 }
